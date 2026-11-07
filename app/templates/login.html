@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Entrar{% endblock %}
+{% block content %}
+<form class="card narrow form" method="post" action="/login">
+  <h1>Entrar</h1>
+  {% if error %}<p class="msg error">{{ error }}</p>{% endif %}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="next" value="{{ next }}">
+  <label>Usuário ou e-mail <input name="login" value="{{ login or '' }}" required autocomplete="username"></label>
+  <label>Senha <input type="password" name="password" required autocomplete="current-password"></label>
+  <button class="btn accent">Entrar</button>
+  <p class="small">Não tem conta? <a href="/register">Criar conta</a></p>
+</form>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Termos e regras{% endblock %}
+{% block content %}
+<article class="card prose">
+  <h1>Termos e regras</h1>
+  <h2>Idade</h2>
+  <p>O acesso e o cadastro são permitidos somente a maiores de {{ min_age }} anos. Conteúdo explícito só aparece para contas logadas.</p>
+  <h2>O que pode ser enviado</h2>
+  <ul>
+    <li>Wallpapers com resolução mínima 2K (2560×1440 ou 1440×2560) ou maior.</li>
+    <li>Apenas pessoas adultas (18+). Personagens fictícios devem ser claramente adultos.</li>
+    <li>Somente conteúdo consensual. É proibido conteúdo vazado, de vingança, câmera escondida ou de pessoas que não autorizaram a publicação.</li>
+    <li>Respeite direitos autorais e informe a fonte sempre que possível.</li>
+  </ul>
+  <h2>Proibido</h2>
+  <ul>
+    <li>Qualquer conteúdo envolvendo menores de idade, ou que aparente envolver — denúncia remove o wallpaper do ar na hora.</li>
+    <li>Violência sexual, conteúdo não consensual, zoofilia ou conteúdo ilegal no Brasil.</li>
+  </ul>
+  <p>Todo envio de usuário comum passa por moderação antes de ficar público. Contas que violarem as regras são banidas e o conteúdo é removido.</p>
+  <h2>Vault pessoal</h2>
+  <p>Os arquivos do vault são criptografados no seu navegador. O site não tem acesso à sua senha nem à chave. Se você perder a senha e a chave de recuperação, os arquivos <strong>não podem ser recuperados</strong>. As mesmas regras de conteúdo valem para o vault.</p>
+</article>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <h1>{{ series.name }}</h1>
+  <div class="tagcloud">{% for c in series.characters %}<a class="tag char" href="/character/{{ c.slug }}">{{ c.name }}</a>{% endfor %}</div>
+</header>
+{% include "_listing.html" %}
+{% endblock %}

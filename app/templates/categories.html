@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Categorias{% endblock %}
+{% block content %}
+<h1>Categorias</h1>
+<div class="cat-list">
+{% for c in cats %}
+  <a class="card cat-card" href="/c/{{ c.slug }}">
+    <h2>{{ c.name }} <small>{{ counts.get(c.id, 0) }}</small></h2>
+    <p>{{ c.description }}</p>
+    <div class="row"><span class="small">Paleta da categoria</span>{% for col in c.colors %}<i class="dot" style="background: {{ col.hex }}" title="{{ col.label }}"></i>{% endfor %}</div>
+    {% if stats[c.id] %}<div class="palette">{% for hx, pct in stats[c.id] %}<span style="background: {{ hx }}; flex: {{ pct }}" title="{{ PALETTE.get(hx) }} {{ pct }}%"></span>{% endfor %}</div>
+    <span class="small">cores reais dos wallpapers</span>{% endif %}
+  </a>
+{% endfor %}
+</div>
+{% endblock %}

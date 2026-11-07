@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Configurações{% endblock %}
+{% block content %}
+<div class="two-col">
+<form class="card form" method="post" action="/settings">
+  <h2>Preferências</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="action" value="prefs">
+  <p>Pureza exibida por padrão:</p>
+  <div class="toggles purity">
+  {% for p in PURITIES %}<label class="p-{{ p }}"><input type="checkbox" name="purity" value="{{ p }}" {% if p in prefs %}checked{% endif %}> {{ PURITY_LABELS[p] }}</label>{% endfor %}
+  </div>
+  <label>Bio <textarea name="bio" rows="4" maxlength="1000">{{ user.bio }}</textarea></label>
+  <button class="btn accent">Salvar</button>
+</form>
+<form class="card form" method="post" action="/settings">
+  <h2>Trocar senha de login</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="action" value="password">
+  <label>Senha atual <input type="password" name="current" required autocomplete="current-password"></label>
+  <label>Nova senha <input type="password" name="new" required minlength="10" autocomplete="new-password"></label>
+  <label>Repita a nova senha <input type="password" name="new2" required minlength="10" autocomplete="new-password"></label>
+  <button class="btn">Alterar senha</button>
+  <p class="small">A senha do <a href="/vault">vault</a> é separada e é trocada lá.</p>
+</form>
+</div>
+{% endblock %}

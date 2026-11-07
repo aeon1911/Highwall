@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "_grid.html" import grid, pagination, filters %}
+{% block content %}
+{{ filters(query, params, categories, allowed_purities, parsed) }}
+<p class="result-count">{{ total }} wallpaper{{ 's' if total != 1 }}</p>
+{{ grid(items, fav_ids if user else None) }}
+{{ pagination(page, pages, query) }}
+{% endblock %}

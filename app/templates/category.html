@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <h1>{{ category.name }}</h1>
+  <p>{{ category.description }}</p>
+  <div class="row wrap">
+    <span class="small">Paleta:</span>
+    {% for col in category.colors %}<a class="chip" style="background: {{ col.hex }}; color: {{ col.hex|textcolor }}" href="{{ request.url.path }}?color={{ col.hex[1:] }}">{{ col.label }}</a>{% endfor %}
+  </div>
+  {% if color_stats %}
+  <div class="row wrap"><span class="small">Mais presentes:</span>
+    {% for hx, pct in color_stats %}<a class="chip" style="background: {{ hx }}; color: {{ hx|textcolor }}" href="{{ request.url.path }}?color={{ hx[1:] }}">{{ PALETTE.get(hx) }} {{ pct }}%</a>{% endfor %}
+  </div>{% endif %}
+</header>
+{% include "_listing.html" %}
+{% endblock %}

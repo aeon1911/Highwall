@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Cores{% endblock %}
+{% block content %}
+<h1>Buscar por cor</h1>
+<div class="color-grid">
+{% for hx, name in PALETTE.items() %}
+  <a href="/search?color={{ hx[1:] }}" style="background: {{ hx }}; color: {{ hx|textcolor }}"><strong>{{ name }}</strong><small>{{ counts.get(hx, 0) }}</small></a>
+{% endfor %}
+</div>
+<h2>Cores por categoria</h2>
+{% for c in cats %}
+<p class="row wrap"><a href="/c/{{ c.slug }}"><strong>{{ c.name }}</strong></a>
+{% for col in c.colors %}<a class="chip" style="background: {{ col.hex }}; color: {{ col.hex|textcolor }}" href="/c/{{ c.slug }}?color={{ col.hex[1:] }}">{{ col.label }}</a>{% endfor %}</p>
+{% endfor %}
+{% endblock %}

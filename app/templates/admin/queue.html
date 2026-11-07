@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Moderação{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<h1>Fila de moderação <small>{{ pending|length }}</small></h1>
+{% if open_reports %}<p class="msg warn"><a href="/admin/reports">{{ open_reports }} denúncia(s) aberta(s)</a></p>{% endif %}
+<div class="mod-list">
+{% for w in pending %}
+  <div class="card mod-item">
+    <a href="/w/{{ w.id }}" target="_blank"><img src="/media/{{ w.id }}/thumb" loading="lazy" alt=""></a>
+    <div>
+      <p><strong>#{{ w.id }}</strong> · {{ w.resolution }} · por <a href="/u/{{ w.uploader.username }}">{{ w.uploader.username }}</a> · {{ w.created_at.strftime("%d/%m %H:%M") }}</p>
+      <p class="tagcloud">{% for l in w.tag_links %}<span class="tag p-{{ l.tag.purity }}">{{ l.tag.name }}</span>{% endfor %}</p>
+      <form method="post" action="/admin/review/{{ w.id }}" class="row wrap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <select name="purity">{% for p in PURITIES %}<option value="{{ p }}" {% if p == w.purity %}selected{% endif %}>{{ PURITY_LABELS[p] }}</option>{% endfor %}</select>
+        <button class="btn accent" name="decision" value="approved">Aprovar</button>
+        <button class="btn danger" name="decision" value="rejected">Recusar</button>
+      </form>
+    </div>
+  </div>
+{% else %}<p class="empty">Fila vazia. 🎉</p>{% endfor %}
+</div>
+{% endblock %}

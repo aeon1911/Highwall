@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_grid.html" import grid %}
+{% block title %}Wallpapers 2K+{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Wallpapers sensuais em 2K, 4K e acima</h1>
+  <p>{{ stats.wallpapers }} wallpapers · {{ stats.tags }} tags · {{ stats.users }} membros. Só resolução alta, só adultos.</p>
+  <form action="/search" class="row center">
+    <input type="search" name="q" class="grow" placeholder='Ex.: ruiva lingerie -nude, char:..., color:rosa' data-autocomplete="tags" data-mode="search" autocomplete="off">
+    <button class="btn accent">Buscar</button>
+  </form>
+</section>
+
+<section>
+  <h2>Categorias</h2>
+  <div class="cat-strip">
+    {% for c in categories %}
+    <a class="cat-tile" href="/c/{{ c.slug }}" style="--c1: {{ c.colors[0].hex if c.colors else '#333' }}; --c2: {{ c.colors[1].hex if c.colors|length > 1 else '#111' }}">
+      <strong>{{ c.name }}</strong>
+      <span class="dots">{% for col in c.colors %}<i style="background: {{ col.hex }}"></i>{% endfor %}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+{% if top %}
+<section>
+  <h2>Destaques do mês <a class="more" href="/toplist">ver toplist ›</a></h2>
+  {{ grid(top) }}
+</section>
+{% endif %}
+
+<section>
+  <h2>Recentes <a class="more" href="/latest">ver todos ›</a></h2>
+  {{ grid(latest, empty="Nenhum wallpaper ainda. Seja o primeiro a enviar!") }}
+</section>
+
+{% if popular_tags %}
+<section>
+  <h2>Tags populares</h2>
+  <div class="tagcloud">{% for t in popular_tags %}<a class="tag p-{{ t.purity }}" href="/tag/{{ t.slug }}">{{ t.name }} <small>{{ t.usage_count }}</small></a>{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}

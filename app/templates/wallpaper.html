@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ wp.title or ("Wallpaper #" ~ wp.id) }} · {{ wp.resolution }}{% endblock %}
+{% block mainclass %}wide{% endblock %}
+{% block content %}
+<div class="wp-layout">
+  <aside class="wp-side">
+    {% if wp.status != 'approved' %}<p class="msg info">Status: <strong>{{ wp.status }}</strong> — visível só para você e a moderação.</p>{% endif %}
+    <h1 class="res-title">{{ wp.resolution }} <small>{{ wp.ratio_label }}</small></h1>
+    <div class="palette">{% for c in wp.colors %}<a href="/search?color={{ c.hex[1:] }}" style="background: {{ c.hex }}; flex: {{ c.percent }}" title="{{ PALETTE.get(c.hex, c.hex) }} · {{ c.percent }}%"></a>{% endfor %}</div>
+
+    <div class="actions">
+      <a class="btn accent" href="/media/{{ wp.id }}/full?download=1">⬇ Baixar</a>
+      {% if user %}
+      <button class="btn fav-btn {% if favorited %}on{% endif %}" data-fav="{{ wp.id }}">♥ <span>{{ wp.favorites_count }}</span></button>
+      <button class="btn" data-save="{{ wp.id }}">＋ Galeria</button>
+      {% endif %}
+    </div>
+    <div id="save-panel" class="card save-panel" hidden></div>
+
+    {% if wp.characters %}
+    <h3>Personagens</h3>
+    <div class="tagcloud">{% for c in wp.characters %}<a class="tag char" href="/character/{{ c.slug }}">{{ c.name }}</a>{% endfor %}</div>
+    {% endif %}
+
+    <h3>Tags</h3>
+    <div class="tagcloud">
+      {% for link in wp.tag_links|sort(attribute="tag.name") %}
+      <a class="tag p-{{ link.tag.purity }} {% if link.implied %}implied{% endif %}" href="/tag/{{ link.tag.slug }}" title="{{ link.tag.tag_category.path if link.tag.tag_category else '' }}{% if link.implied %} · implícita{% endif %}">{{ link.tag.name }}</a>
+      {% else %}<span class="small">Sem tags.</span>{% endfor %}
+    </div>
+
+    <dl class="props">
+      <dt>Enviado por</dt><dd><a href="/u/{{ wp.uploader.username }}">{{ wp.uploader.username }}</a></dd>
+      <dt>Data</dt><dd>{{ wp.created_at.strftime("%d/%m/%Y") }}</dd>
+      <dt>Categoria</dt><dd>{% if wp.category %}<a href="/c/{{ wp.category.slug }}">{{ wp.category.name }}</a>{% else %}—{% endif %}</dd>
+      <dt>Pureza</dt><dd class="p-{{ wp.purity }}">{{ PURITY_LABELS[wp.purity] }}</dd>
+      <dt>Tamanho</dt><dd>{{ wp.file_size|filesize }} · {{ wp.mime.split('/')[1]|upper }}</dd>
+      <dt>Visualizações</dt><dd>{{ wp.views }}</dd>
+      {% if wp.source %}<dt>Fonte</dt><dd><a href="{{ wp.source if wp.source.startswith('http') else '#' }}" rel="nofollow noopener noreferrer" target="_blank">{{ wp.source|truncate(40) }}</a></dd>{% endif %}
+    </dl>
+    <p><a href="/search?q=like:{{ wp.id }}&sorting=relevance">Ver parecidos ›</a></p>
+
+    {% if can_edit %}
+    <details class="card">
+      <summary>Editar</summary>
+      <form class="form" method="post" action="/w/{{ wp.id }}/edit">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Título <input name="title" value="{{ wp.title }}" maxlength="140"></label>
+        <label>Fonte <input name="source" value="{{ wp.source }}" maxlength="500"></label>
+        <label>Categoria <select name="category"><option value="">—</option>{% for c in categories %}<option value="{{ c.id }}" {% if c.id == wp.category_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></label>
+        <label>Pureza <select name="purity">{% for p in PURITIES %}<option value="{{ p }}" {% if p == wp.purity %}selected{% endif %}>{{ PURITY_LABELS[p] }}</option>{% endfor %}</select></label>
+        <label>Tags <input name="tags" data-autocomplete="tags" autocomplete="off" value="{{ wp.tag_links|rejectattr('implied')|map(attribute='tag.name')|join(', ') }}"></label>
+        <label>Personagens <input name="characters" data-autocomplete="characters" autocomplete="off" value="{{ wp.characters|map(attribute='name')|join(', ') }}"></label>
+        <button class="btn">Salvar</button>
+      </form>
+      <form method="post" action="/w/{{ wp.id }}/delete" data-confirm="Apagar este wallpaper definitivamente?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn danger">Apagar wallpaper</button>
+      </form>
+    </details>
+    {% endif %}
+    {% if user and user.id != wp.uploader_id %}
+    <details class="card">
+      <summary>Denunciar</summary>
+      <form class="form" method="post" action="/w/{{ wp.id }}/report">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <select name="reason">
+          <option value="underage">Pessoa aparenta ser menor de idade</option>
+          <option value="non_consensual">Conteúdo não consensual / vazado</option>
+          <option value="copyright">Direitos autorais</option>
+          <option value="wrong_purity">Pureza errada</option>
+          <option value="wrong_tags">Tags / categoria erradas</option>
+          <option value="low_quality">Baixa qualidade / upscale</option>
+          <option value="other">Outro</option>
+        </select>
+        <textarea name="details" rows="3" maxlength="2000" placeholder="Detalhes (opcional)"></textarea>
+        <button class="btn danger">Enviar denúncia</button>
+      </form>
+    </details>
+    {% endif %}
+  </aside>
+  <section class="wp-main">
+    <a href="/media/{{ wp.id }}/full" target="_blank" class="wp-full" style="background: {{ wp.colors[0].hex if wp.colors else '#111' }}">
+      <img src="/media/{{ wp.id }}/full" alt="Wallpaper {{ wp.resolution }}" width="{{ wp.width }}" height="{{ wp.height }}">
+    </a>
+    {% if similar %}
+    <h2>Parecidos</h2>
+    {% from "_grid.html" import grid %}
+    {{ grid(similar) }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

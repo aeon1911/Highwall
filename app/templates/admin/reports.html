@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Denúncias{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<h1>Denúncias abertas</h1>
+<div class="mod-list">
+{% for r in reports %}
+  <div class="card mod-item {% if r.reason == 'underage' %}urgent{% endif %}">
+    <a href="/w/{{ r.wallpaper_id }}" target="_blank"><img src="/media/{{ r.wallpaper_id }}/thumb" loading="lazy" alt=""></a>
+    <div>
+      <p><strong>{{ reasons.get(r.reason, r.reason) }}</strong> · por {{ r.user.username }} · {{ r.created_at.strftime("%d/%m %H:%M") }} · status do wallpaper: {{ r.wallpaper.status }}</p>
+      {% if r.details %}<p>{{ r.details }}</p>{% endif %}
+      <form method="post" action="/admin/reports/{{ r.id }}" class="row wrap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="btn danger" name="action" value="remove">Remover wallpaper</button>
+        <button class="btn" name="action" value="resolved">Resolvido (corrigi)</button>
+        <button class="btn" name="action" value="dismissed">Descartar denúncia</button>
+      </form>
+    </div>
+  </div>
+{% else %}<p class="empty">Nenhuma denúncia aberta.</p>{% endfor %}
+</div>
+{% endblock %}

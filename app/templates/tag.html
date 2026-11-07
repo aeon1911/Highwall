@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <h1><span class="tag p-{{ tag.purity }}">{{ tag.name }}</span> <small>{{ tag.usage_count }} wallpapers</small></h1>
+  {% if tag.tag_category %}<p class="small">{{ tag.tag_category.path }}</p>{% endif %}
+  {% if tag.description %}<p>{{ tag.description }}</p>{% endif %}
+  <dl class="props">
+    {% if tag.aliases %}<dt>Aliases</dt><dd>{{ tag.aliases|map(attribute='alias')|join(', ') }}</dd>{% endif %}
+    {% if tag.implies %}<dt>Implica</dt><dd>{% for t in tag.implies %}<a class="tag" href="/tag/{{ t.slug }}">{{ t.name }}</a> {% endfor %}</dd>{% endif %}
+    {% if implied_by %}<dt>Implicada por</dt><dd>{% for t in implied_by %}<a class="tag" href="/tag/{{ t.slug }}">{{ t.name }}</a> {% endfor %}</dd>{% endif %}
+    {% if related %}<dt>Relacionadas</dt><dd>{% for t, n in related %}<a class="tag p-{{ t.purity }}" href="/tag/{{ t.slug }}">{{ t.name }} <small>{{ n }}</small></a> {% endfor %}</dd>{% endif %}
+  </dl>
+  {% if user and user.is_staff %}<a class="btn small" href="/admin/tags/{{ tag.slug }}">Editar tag</a>{% endif %}
+</header>
+{% include "_listing.html" %}
+{% endblock %}

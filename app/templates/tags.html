@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Tags{% endblock %}
+{% block content %}
+<header class="page-head row wrap">
+  <h1>Tags</h1>
+  <form class="row"><input type="search" name="q" value="{{ q }}" placeholder="Filtrar tags"><button class="btn">Filtrar</button></form>
+</header>
+{% macro tagblock(cat, depth) %}
+  {% set list = by_cat.get(cat.id, []) %}
+  <section class="tag-group depth-{{ depth }}">
+    <h{{ 2 + depth }}>{{ cat.name }}</h{{ 2 + depth }}>
+    {% if list %}<div class="tagcloud">{% for t in list %}<a class="tag p-{{ t.purity }}" href="/tag/{{ t.slug }}">{{ t.name }} <small>{{ t.usage_count }}</small></a>{% endfor %}</div>{% endif %}
+    {% for child in cat.children %}{{ tagblock(child, depth + 1) }}{% endfor %}
+  </section>
+{% endmacro %}
+<div class="tag-columns">
+{% for root in roots %}{{ tagblock(root, 0) }}{% endfor %}
+{% if by_cat.get(None) %}<section class="tag-group"><h2>Sem categoria</h2><div class="tagcloud">{% for t in by_cat[None] %}<a class="tag" href="/tag/{{ t.slug }}">{{ t.name }}</a>{% endfor %}</div></section>{% endif %}
+</div>
+{% if user and user.is_staff %}
+<form class="card form inline" method="post" action="/admin/tag-categories">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <strong>Nova categoria de tag</strong>
+  <input name="name" placeholder="Nome" required>
+  <select name="parent"><option value="">(raiz)</option>{% for r in roots %}<option value="{{ r.id }}">{{ r.name }}</option>{% for c in r.children %}<option value="{{ c.id }}">— {{ c.name }}</option>{% endfor %}{% endfor %}</select>
+  <button class="btn">Criar</button>
+</form>
+{% endif %}
+{% endblock %}

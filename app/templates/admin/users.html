@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Usuários{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<form class="row"><input type="search" name="q" value="{{ q }}" placeholder="usuário ou e-mail"><button class="btn">Buscar</button></form>
+<table class="table">
+  <tr><th>Usuário</th><th>E-mail</th><th>Desde</th><th>Papel</th><th>Banido</th><th></th></tr>
+  {% for u in users %}
+  <tr>
+    <td><a href="/u/{{ u.username }}">{{ u.username }}</a></td><td>{{ u.email }}</td><td>{{ u.created_at.strftime("%d/%m/%Y") }}</td>
+    <td colspan="3">
+      <form method="post" action="/admin/users/{{ u.id }}" class="row">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <select name="role" {% if user.role != 'admin' %}disabled{% endif %}>{% for r in roles %}<option {% if r == u.role %}selected{% endif %}>{{ r }}</option>{% endfor %}</select>
+        <label><input type="checkbox" name="banned" value="yes" {% if u.is_banned %}checked{% endif %}> banido</label>
+        <button class="btn small">Salvar</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

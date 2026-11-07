@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Personagens{% endblock %}
+{% block content %}
+<header class="page-head row wrap">
+  <h1>Personagens</h1>
+  <form class="row"><input type="search" name="q" value="{{ q }}" placeholder="Nome ou alias"><button class="btn">Buscar</button></form>
+</header>
+<div class="char-list">
+{% for c in chars %}
+  <a class="card char-card" href="/character/{{ c.slug }}"><strong>{{ c.name }}</strong>{% if c.series %}<span class="small">{{ c.series.name }}</span>{% endif %}<small>{{ c.usage_count }}</small></a>
+{% else %}<p class="empty">Nenhum personagem ainda. Eles são criados ao enviar wallpapers.</p>{% endfor %}
+</div>
+{% if series %}<h2>Séries / franquias</h2><div class="tagcloud">{% for s in series %}<a class="tag" href="/series/{{ s.slug }}">{{ s.name }}</a>{% endfor %}</div>{% endif %}
+{% endblock %}

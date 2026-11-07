@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Editar tag {{ tag.name }}{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<div class="two-col">
+<form class="card form" method="post">
+  <h1>Editar <a href="/tag/{{ tag.slug }}">{{ tag.name }}</a></h1>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label>Nome <input name="name" value="{{ tag.name }}"></label>
+  <label>Categoria
+    <select name="tag_category"><option value="">—</option>{% for c in tcats %}<option value="{{ c.id }}" {% if c.id == tag.tag_category_id %}selected{% endif %}>{{ c.path }}</option>{% endfor %}</select></label>
+  <label>Pureza <select name="purity">{% for p in PURITIES %}<option value="{{ p }}" {% if p == tag.purity %}selected{% endif %}>{{ PURITY_LABELS[p] }}</option>{% endfor %}</select></label>
+  <label>Aliases <small>(vírgula)</small> <input name="aliases" value="{{ tag.aliases|map(attribute='alias')|join(', ') }}"></label>
+  <label>Implica <small>(ao aplicar esta tag, estas entram junto)</small> <input name="implies" data-autocomplete="tags" autocomplete="off" value="{{ tag.implies|map(attribute='name')|join(', ') }}"></label>
+  <label>Descrição <textarea name="description" rows="3">{{ tag.description }}</textarea></label>
+  <button class="btn accent" name="action" value="save">Salvar</button>
+</form>
+<div>
+  <form class="card form" method="post">
+    <h3>Mesclar em outra tag</h3>
+    <p class="small">Move todos os wallpapers para a tag destino e transforma esta em alias dela.</p>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input name="merge_into" data-autocomplete="tags" data-single="1" autocomplete="off" placeholder="tag destino">
+    <button class="btn" name="action" value="merge">Mesclar</button>
+  </form>
+  <form class="card form" method="post" data-confirm="Apagar a tag de todos os wallpapers?">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="btn danger" name="action" value="delete">Apagar tag</button>
+  </form>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Enviar wallpapers{% endblock %}
+{% block content %}
+<form id="upload-form" class="card form" method="post" action="/upload" enctype="multipart/form-data" data-max-mb="{{ max_mb }}" data-min-long="{{ min_long }}" data-min-short="{{ min_short }}">
+  <h1>Enviar wallpapers</h1>
+  <p class="hint">Mínimo <strong>2K</strong>: {{ min_long }}×{{ min_short }} (paisagem) ou {{ min_short }}×{{ min_long }} (retrato). JPG, PNG ou WEBP até {{ max_mb }} MB.
+     Metadados EXIF/GPS são removidos. {% if not user.is_staff %}Seus envios passam por moderação antes de ficarem públicos.{% endif %}</p>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <label class="dropzone" id="dropzone">
+    <input type="file" id="files" accept="image/jpeg,image/png,image/webp" multiple>
+    <span>Arraste as imagens aqui ou clique para escolher</span>
+  </label>
+  <ul id="queue" class="queue"></ul>
+  <div class="two-col">
+    <label>Categoria
+      <select name="category">
+        <option value="">—</option>
+        {% for c in categories %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Pureza
+      <select name="purity">
+        {% for p in PURITIES %}<option value="{{ p }}" {% if p == 'sketchy' %}selected{% endif %}>{{ PURITY_LABELS[p] }}</option>{% endfor %}
+      </select>
+    </label>
+  </div>
+  <label>Tags <small>(separadas por vírgula; tags novas são criadas)</small>
+    <input name="tags" data-autocomplete="tags" autocomplete="off" placeholder="ruiva, lingerie preta, quarto"></label>
+  <label>Personagens <small>(opcional — "Nome (Série)")</small>
+    <input name="characters" data-autocomplete="characters" autocomplete="off" placeholder="Nome da personagem (Série)"></label>
+  <div class="two-col">
+    <label>Título <input name="title" maxlength="140"></label>
+    <label>Fonte / artista <input name="source" maxlength="500" placeholder="https://..."></label>
+  </div>
+  <label class="check"><input type="checkbox" name="confirm_adults" value="yes" required> Confirmo que todas as pessoas retratadas são maiores de 18 anos, consentiram com a publicação e que tenho direito de enviar estas imagens.</label>
+  <button class="btn accent" id="upload-btn">Enviar</button>
+</form>
+{% endblock %}

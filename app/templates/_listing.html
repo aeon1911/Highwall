@@ -1,0 +1,6 @@
+{# bloco reutilizado em páginas de tag/personagem/categoria/perfil #}
+{% from "_grid.html" import grid, pagination, filters %}
+{{ filters(query, params, categories, allowed_purities, parsed, action=request.url.path, show_q=False) }}
+<p class="result-count">{{ total }} wallpaper{{ 's' if total != 1 }}</p>
+{{ grid(items, fav_ids if user else None) }}
+{{ pagination(page, pages, query, base=request.url.path) }}

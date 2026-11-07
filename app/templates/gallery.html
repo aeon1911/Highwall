@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_grid.html" import grid %}
+{% block title %}Minha galeria{% endblock %}
+{% block content %}
+<div class="gallery-layout">
+  <aside class="card folder-tree">
+    <h3><a href="/gallery">📁 Minha galeria</a></h3>
+    <p class="small">Privada — só você vê.</p>
+    <ul>
+      {% for f, depth in tree %}
+      <li style="padding-left: {{ depth * 14 }}px" class="{{ 'active' if folder and folder.id == f.id }}"><a href="/gallery/{{ f.id }}">{{ f.name }}</a> <small>{{ counts.get(f.id, 0) }}</small></li>
+      {% else %}<li class="small">Nenhuma pasta ainda.</li>{% endfor %}
+    </ul>
+    <form class="form" method="post" action="/gallery/folders">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {% if folder %}<input type="hidden" name="parent" value="{{ folder.id }}">{% endif %}
+      <input name="name" maxlength="64" placeholder="{{ 'Nova subpasta' if folder else 'Nova pasta' }}" required>
+      <button class="btn small">Criar</button>
+    </form>
+  </aside>
+  <section>
+    <nav class="crumbs"><a href="/gallery">Galeria</a>{% for c in crumbs %} › <a href="/gallery/{{ c.id }}">{{ c.name }}</a>{% endfor %}</nav>
+    {% if folder %}
+      <header class="page-head row wrap">
+        <h1>{{ folder.name }}</h1>
+        <details class="dropdown">
+          <summary class="btn small">Editar pasta</summary>
+          <div class="menu">
+            <form class="form" method="post" action="/gallery/{{ folder.id }}/edit">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <input name="name" value="{{ folder.name }}" maxlength="64">
+              <textarea name="description" rows="2" maxlength="500">{{ folder.description }}</textarea>
+              <button class="btn small">Salvar</button>
+            </form>
+            <form method="post" action="/gallery/{{ folder.id }}/edit" data-confirm="Apagar a pasta e subpastas? Os wallpapers continuam no site.">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button class="btn small danger" name="action" value="delete">Apagar pasta</button>
+            </form>
+          </div>
+        </details>
+      </header>
+      {% if folder.description %}<p>{{ folder.description }}</p>{% endif %}
+      {% if children %}<div class="row wrap">{% for c in children %}<a class="chip" href="/gallery/{{ c.id }}">📁 {{ c.name }} ({{ counts.get(c.id, 0) }})</a>{% endfor %}</div>{% endif %}
+      {{ grid(items, empty="Pasta vazia. Use o botão “＋ Galeria” na página de um wallpaper.") }}
+    {% else %}
+      <h1>Minha galeria</h1>
+      <p>Organize os wallpapers que você curtiu em pastas e subpastas privadas. Para guardar imagens suas, com criptografia, use o <a href="/vault">🔒 Vault</a>.</p>
+      <div class="folder-cards">
+        {% for c in children %}<a class="card" href="/gallery/{{ c.id }}"><strong>📁 {{ c.name }}</strong><small>{{ counts.get(c.id, 0) }} wallpapers</small></a>{% endfor %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

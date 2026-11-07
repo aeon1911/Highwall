@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <h1>{{ profile.username }} {% if profile.role != 'user' %}<span class="badge">{{ profile.role }}</span>{% endif %}</h1>
+  {% if profile.bio %}<p>{{ profile.bio }}</p>{% endif %}
+  <nav class="tabs">
+    <a href="/u/{{ profile.username }}" class="{{ 'active' if tab == 'uploads' }}">Envios</a>
+    <a href="/u/{{ profile.username }}/favorites" class="{{ 'active' if tab == 'favorites' }}">Favoritos ({{ fav_count }})</a>
+  </nav>
+</header>
+{% if pending %}
+<section class="card"><h3>Aguardando moderação / recusados</h3>
+{% from "_grid.html" import grid %}{{ grid(pending) }}</section>
+{% endif %}
+{% include "_listing.html" %}
+{% endblock %}

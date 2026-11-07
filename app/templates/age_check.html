@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="rating" content="adult"><meta name="RATING" content="RTA-5042-1996-1400-1577-RTA">
+  <title>Conteúdo adulto · {{ site_name }}</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="agegate">
+  <div class="card narrow center">
+    <div class="logo big">{{ site_name }}<span>18+</span></div>
+    <h1>Conteúdo para maiores de {{ min_age }} anos</h1>
+    <p>Este site contém imagens sensuais e de nudez destinadas exclusivamente a adultos.
+       Ao entrar, você declara ter pelo menos {{ min_age }} anos (ou a maioridade exigida no seu país)
+       e que acessar esse tipo de conteúdo é legal onde você está.</p>
+    <form method="post" action="/age-check" class="row center">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn accent" name="confirm" value="yes">Tenho {{ min_age }}+ anos — entrar</button>
+      <button class="btn" name="confirm" value="no">Sair</button>
+    </form>
+    <p class="small"><a href="/terms">Termos e regras</a></p>
+  </div>
+</body>
+</html>

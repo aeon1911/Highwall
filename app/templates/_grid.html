@@ -1,0 +1,89 @@
+{% macro grid(items, fav_ids=None, empty="Nenhum wallpaper encontrado.") %}
+{% if items %}
+<div class="grid">
+  {% for w in items %}
+  <figure class="thumb purity-{{ w.purity }}">
+    <a href="/w/{{ w.id }}" style="aspect-ratio: {{ w.width }} / {{ w.height }}; background: {{ w.colors[0].hex if w.colors else '#222' }}">
+      <img src="/media/{{ w.id }}/thumb" loading="lazy" alt="Wallpaper #{{ w.id }}">
+    </a>
+    <figcaption>
+      <span class="res">{{ w.resolution }}</span>
+      <span class="pur" title="{{ PURITY_LABELS[w.purity] }}">{{ PURITY_LABELS[w.purity] }}</span>
+      <span class="stats">♥ {{ w.favorites_count }}</span>
+      {% if w.status != 'approved' %}<span class="badge {{ w.status }}">{{ w.status }}</span>{% endif %}
+      {% if fav_ids is not none %}
+      <button class="fav-btn {% if w.id in fav_ids %}on{% endif %}" data-fav="{{ w.id }}" title="Favoritar">♥</button>
+      {% endif %}
+    </figcaption>
+  </figure>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">{{ empty }}</p>
+{% endif %}
+{% endmacro %}
+
+{% macro pagination(page, pages, query, base="/search") %}
+{% if pages > 1 %}
+<nav class="pagination">
+  {% if page > 1 %}<a href="{{ base }}?{{ qs(query, page=page-1) }}">‹ Anterior</a>{% endif %}
+  <span>Página {{ page }} de {{ pages }}</span>
+  {% if page < pages %}<a href="{{ base }}?{{ qs(query, page=page+1) }}">Próxima ›</a>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}
+
+{% macro filters(query, params, categories, allowed_purities, parsed, action="/search", show_q=True) %}
+<form class="filters" action="{{ action }}" method="get">
+  {% if show_q %}
+  <div class="row">
+    <input type="search" name="q" value="{{ query.q }}" placeholder='tags, "duas palavras", -excluir, ~ou, char:slug, @usuário, color:rosa, like:12' data-autocomplete="tags" data-mode="search" autocomplete="off" class="grow">
+    <button class="btn accent">Buscar</button>
+  </div>
+  {% endif %}
+  <div class="row wrap">
+    <fieldset class="toggles">
+      {% for c in categories %}
+      <label><input type="checkbox" name="cat" value="{{ c.id }}" {% if c.id in params.categories %}checked{% endif %}> {{ c.name }}</label>
+      {% endfor %}
+    </fieldset>
+    <fieldset class="toggles purity">
+      {% for p in PURITIES %}
+      <label class="p-{{ p }} {% if p not in allowed_purities %}disabled{% endif %}" {% if p not in allowed_purities %}title="Entre para ver"{% endif %}>
+        <input type="checkbox" name="purity" value="{{ p }}" {% if p in params.purity %}checked{% endif %} {% if p not in allowed_purities %}disabled{% endif %}> {{ PURITY_LABELS[p] }}</label>
+      {% endfor %}
+    </fieldset>
+  </div>
+  <div class="row wrap">
+    <select name="sorting">
+      {% for k, v in SORTS.items() %}<option value="{{ k }}" {% if params.sorting == k %}selected{% endif %}>{{ v }}</option>{% endfor %}
+    </select>
+    <select name="range" title="Período da toplist">
+      {% for k in TOP_RANGES %}<option value="{{ k }}" {% if params.top_range == k %}selected{% endif %}>Top {{ k }}</option>{% endfor %}
+    </select>
+    <select name="order"><option value="desc">↓ Desc</option><option value="asc" {% if params.order == 'asc' %}selected{% endif %}>↑ Asc</option></select>
+    <select name="atleast">
+      <option value="">Resolução mínima</option>
+      {% for r in ["2560x1440","3440x1440","3840x2160","5120x2880","7680x4320","1440x2560","2160x3840"] %}
+      <option value="{{ r }}" {% if params.atleast == r %}selected{% endif %}>≥ {{ r }}</option>{% endfor %}
+    </select>
+    <details class="dropdown">
+      <summary>Proporção{% if params.ratios %} ({{ params.ratios|length }}){% endif %}</summary>
+      <div class="menu checks">
+        {% for r in ["landscape","portrait","16x9","16x10","21x9","32x9","4x3","9x16","9x19.5","9x20"] %}
+        <label><input type="checkbox" name="ratio" value="{{ r }}" {% if r in params.ratios %}checked{% endif %}> {{ r }}</label>{% endfor %}
+      </div>
+    </details>
+    <details class="dropdown">
+      <summary>Cor{% if params.colors %} ({{ params.colors|length }}){% endif %}</summary>
+      <div class="menu swatches">
+        {% for hx, name in PALETTE.items() %}
+        <label class="swatch" style="background: {{ hx }}" title="{{ name }}"><input type="checkbox" name="color" value="{{ hx[1:] }}" {% if hx[1:] in params.colors or hx in params.colors %}checked{% endif %}></label>{% endfor %}
+      </div>
+    </details>
+    {% if not show_q %}<input type="hidden" name="q" value="">{% endif %}
+    <button class="btn">Aplicar</button>
+  </div>
+  {% if parsed and parsed.unknown %}<p class="hint">Termos não encontrados: {% for u in parsed.unknown %}<code>{{ u }}</code> {% endfor %}</p>{% endif %}
+</form>
+{% endmacro %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-head">
+  <h1>{{ character.name }}</h1>
+  {% if character.series %}<p>de <a href="/series/{{ character.series.slug }}">{{ character.series.name }}</a></p>{% endif %}
+  {% if character.alias_list %}<p class="small">Também conhecida como: {{ character.alias_list|join(', ') }}</p>{% endif %}
+  {% if character.description %}<p>{{ character.description }}</p>{% endif %}
+</header>
+{% include "_listing.html" %}
+{% endblock %}

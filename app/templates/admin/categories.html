@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Categorias e cores{% endblock %}
+{% block content %}
+{% include "admin/_nav.html" %}
+<h1>Categorias e paletas</h1>
+{% macro catform(c) %}
+<form class="card form" method="post" action="/admin/categories">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% if c %}<input type="hidden" name="id" value="{{ c.id }}">{% endif %}
+  <div class="two-col">
+    <label>Nome <input name="name" value="{{ c.name if c else '' }}" required></label>
+    <label>Ordem <input name="sort_order" type="number" value="{{ c.sort_order if c else 99 }}"></label>
+  </div>
+  <label>Descrição <input name="description" value="{{ c.description if c else '' }}"></label>
+  <p class="small">Cores da categoria (até 8):</p>
+  <div class="swatches">
+    {% set chosen = c.colors|map(attribute='hex')|list if c else [] %}
+    {% for hx, name in palette.items() %}<label class="swatch" style="background: {{ hx }}" title="{{ name }}"><input type="checkbox" name="colors" value="{{ hx }}" {% if hx in chosen %}checked{% endif %}></label>{% endfor %}
+  </div>
+  <div class="row">
+    <button class="btn accent">{{ 'Salvar' if c else 'Criar categoria' }}</button>
+    {% if c %}<button class="btn danger" name="action" value="delete" data-confirm="Apagar categoria? Wallpapers ficam sem categoria.">Apagar</button>{% endif %}
+  </div>
+</form>
+{% endmacro %}
+{% for c in cats %}{{ catform(c) }}{% endfor %}
+<h2>Nova categoria</h2>
+{{ catform(None) }}
+{% endblock %}
