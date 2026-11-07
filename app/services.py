@@ -266,7 +266,7 @@ async def create_wallpaper(
         purity = "sketchy"
     category = db.get(Category, category_id) if category_id else None
 
-    caption = f"High · {user.username} · {img.width}x{img.height} · {img.sha256[:12]}"
+    caption = f"HighWall · {user.username} · {img.width}x{img.height} · {img.sha256[:12]}"
     original = await storage.put(img.data, f"{img.sha256[:16]}.{img.ext}", img.mime, caption)
     try:
         thumb = await storage.put(img.thumb, f"{img.sha256[:16]}_thumb.webp", "image/webp", caption + " · thumb")

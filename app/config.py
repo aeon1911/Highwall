@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="HIGH_", env_file=BASE_DIR / ".env", extra="ignore")
 
     secret_key: str = "dev-insecure-change-me"
-    site_name: str = "High"
+    site_name: str = "HighWall"
     database_url: str = f"sqlite:///{BASE_DIR / 'data' / 'high.db'}"
     debug: bool = False
 

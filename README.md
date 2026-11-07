@@ -1,4 +1,4 @@
-# High
+# HighWall
 
 Site de wallpapers sensuais **para maiores de 18 anos**, só em **2K ou mais**, com as imagens hospedadas no **Telegram** (Bot API).
 
