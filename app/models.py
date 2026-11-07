@@ -44,9 +44,18 @@ class User(Base):
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
     # filtros de pureza padrão do usuário, ex.: "sfw,sketchy,nsfw"
     purity_pref: Mapped[str] = mapped_column(String(32), default="sfw,sketchy,nsfw")
+    # Derivação no navegador (modelo Bitwarden). Com kdf_salt preenchido, `password_hash` é
+    # argon2(auth_hash) e o servidor nunca vê a senha real. Sem ele = conta antiga (senha crua).
+    kdf_salt: Mapped[str | None] = mapped_column(String(64))
+    kdf_iterations: Mapped[int | None] = mapped_column(Integer)
+    recovery_auth_hash: Mapped[str | None] = mapped_column(String(255))  # argon2 do autenticador das 12 palavras
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     wallpapers: Mapped[list[Wallpaper]] = relationship(back_populates="uploader", foreign_keys="Wallpaper.uploader_id")
+
+    @property
+    def client_kdf(self) -> bool:
+        return self.kdf_salt is not None
 
     @property
     def is_staff(self) -> bool:
@@ -361,18 +370,17 @@ class CollectionItem(Base):
 
 
 class VaultKey(Base):
-    """Material público do vault. O servidor guarda a chave-mestra *embrulhada* (cifrada)
-    com uma chave derivada da senha do vault, que só existe no navegador do dono.
-    Sem a senha, nada aqui permite decifrar os arquivos."""
+    """Chave-mestra do vault, sempre *embrulhada* (cifrada). Gerada no navegador no cadastro.
+
+    wrapped_key          = AES-GCM(KEK, chave-mestra)       KEK vem da senha de login (no navegador)
+    recovery_wrapped_key = AES-GCM(chave das 12 palavras, chave-mestra)
+    Sem a senha ou as 12 palavras, nada aqui permite decifrar os arquivos."""
 
     __tablename__ = "vault_keys"
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    kdf: Mapped[str] = mapped_column(String(32), default="PBKDF2-SHA256")
-    kdf_iterations: Mapped[int] = mapped_column(Integer)
-    salt: Mapped[str] = mapped_column(String(64))  # base64
-    wrapped_key: Mapped[str] = mapped_column(String(255))  # base64(iv || AES-GCM(master_key))
-    recovery_wrapped_key: Mapped[str] = mapped_column(String(255), default="")  # embrulhada pela chave de recuperação
+    wrapped_key: Mapped[str] = mapped_column(String(255))
+    recovery_wrapped_key: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 

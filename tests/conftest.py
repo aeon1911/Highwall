@@ -1,3 +1,4 @@
+import base64
 import io
 import os
 import re
@@ -39,15 +40,33 @@ def csrf_of(client: TestClient, path="/") -> str:
     return re.search(r'name="csrf-token" content="([^"]+)"', html).group(1)
 
 
-def register(client: TestClient, username: str, password="senha-forte-123") -> None:
+def b64r(n: int) -> str:
+    return base64.b64encode(os.urandom(n)).decode()
+
+
+def key_material(auth: str | None = None) -> dict:
+    """Simula o que o navegador envia (o servidor não consegue checar o conteúdo, só o formato)."""
+    return {
+        "auth_hash": auth or b64r(32),
+        "kdf_salt": b64r(16),
+        "kdf_iterations": 600000,
+        "wrapped_key": b64r(60),
+        "recovery_wrapped_key": b64r(60),
+        "recovery_auth": b64r(32),
+    }
+
+
+def register(client: TestClient, username: str, material: dict | None = None) -> dict:
     tok = csrf_of(client, "/register")
+    material = material or key_material()
     r = client.post(
         "/register",
-        data={"csrf_token": tok, "username": username, "email": f"{username}@ex.com", "password": password,
-              "password2": password, "birthdate": "1995-05-05", "accept_terms": "yes"},
-        follow_redirects=False,
+        json={"username": username, "email": f"{username}@ex.com", "birthdate": "1995-05-05",
+              "accept_terms": True, **material},
+        headers={"X-CSRF-Token": tok},
     )
-    assert r.status_code == 303, r.text
+    assert r.status_code == 200 and r.json()["ok"], r.text
+    return material
 
 
 @pytest.fixture(scope="session")
@@ -67,3 +86,20 @@ def new_client() -> TestClient:
 def csrf_of_age(c: TestClient) -> str:
     html = c.get("/age-check").text
     return re.search(r'name="csrf_token" value="([^"]+)"', html).group(1)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _database(appclient):
+    """Garante tabelas e dados iniciais antes de qualquer teste (o lifespan roda no appclient)."""
+    yield
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    from app import security
+    from app.routes import auth
+
+    for lim in (security.login_limiter, security.register_limiter, security.upload_limiter,
+                auth.recover_limiter, auth.prelogin_limiter):
+        lim.hits.clear()
+    yield

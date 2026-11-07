@@ -6,7 +6,8 @@
   <header class="page-head">
     <h1>🔒 Vault pessoal</h1>
     <p class="small">Criptografia de ponta a ponta: as imagens são cifradas <strong>no seu navegador</strong> (AES-256-GCM) antes do envio.
-      O site e o Telegram só recebem dados embaralhados — nem a administração consegue abrir.</p>
+      O site e o Telegram só recebem dados embaralhados, e nem a administração consegue abrir.
+      A chave abre com a sua senha de login ou com as 12 palavras, em qualquer aparelho.</p>
   </header>
 
   <section data-screen="loading" class="card narrow center"><p>Carregando…</p></section>
@@ -15,46 +16,15 @@
     <p class="msg error">O vault precisa de conexão segura (HTTPS ou localhost) para usar a criptografia do navegador.</p>
   </section>
 
-  <section data-screen="setup" class="card narrow" hidden>
-    <h2>Criar seu vault</h2>
-    <p>Escolha uma <strong>senha do vault</strong>, diferente da senha de login. Ela nunca sai do seu navegador.</p>
-    <p class="msg warn">Se você esquecer essa senha e perder a chave de recuperação, seus arquivos ficam perdidos para sempre. Não existe “esqueci minha senha” aqui.</p>
-    <form id="setup-form" class="form">
-      <label>Senha do vault (mín. 12) <input type="password" name="pass" minlength="12" required autocomplete="new-password"></label>
-      <label>Repita <input type="password" name="pass2" minlength="12" required autocomplete="new-password"></label>
-      <button class="btn accent">Criar vault</button>
-      <p id="setup-msg" class="msg" hidden></p>
-    </form>
-  </section>
-
-  <section data-screen="recovery" class="card narrow" hidden>
-    <h2>Sua chave de recuperação</h2>
-    <p>Anote ou guarde num gerenciador de senhas. Ela é mostrada <strong>só agora</strong> e é o único jeito de abrir o vault se você esquecer a senha.</p>
-    <pre id="recovery-code" class="recovery-code"></pre>
-    <label class="check"><input type="checkbox" id="recovery-ack"> Guardei a chave de recuperação em local seguro.</label>
-    <button id="recovery-done" class="btn accent">Continuar</button>
-  </section>
-
   <section data-screen="unlock" class="card narrow" hidden>
     <h2>Desbloquear vault</h2>
+    <p class="small">Use a mesma senha de login. Ela é processada só aqui no navegador.</p>
     <form id="unlock-form" class="form">
-      <label>Senha do vault <input type="password" name="pass" required autocomplete="current-password"></label>
+      <label>Senha <input type="password" name="pass" required autocomplete="current-password"></label>
       <button class="btn accent">Desbloquear</button>
       <p id="unlock-msg" class="msg" hidden></p>
     </form>
-    <button id="show-recover" class="linklike small">Esqueci a senha — usar chave de recuperação</button>
-  </section>
-
-  <section data-screen="recover" class="card narrow" hidden>
-    <h2>Recuperar com a chave</h2>
-    <form id="recover-form" class="form">
-      <label>Chave de recuperação <input name="code" required autocomplete="off" spellcheck="false"></label>
-      <label>Nova senha do vault <input type="password" name="pass" minlength="12" required autocomplete="new-password"></label>
-      <label>Repita <input type="password" name="pass2" minlength="12" required autocomplete="new-password"></label>
-      <button class="btn accent">Recuperar</button>
-      <p id="recover-msg" class="msg" hidden></p>
-    </form>
-    <button id="back-unlock" class="linklike small">‹ Voltar</button>
+    <a class="small" href="/recover">Esqueci a senha — usar as 12 palavras</a>
   </section>
 
   <section data-screen="open" hidden>
@@ -71,16 +41,7 @@
     <ul id="upload-log" class="queue"></ul>
     <p id="empty" class="empty" hidden>Nada aqui ainda.</p>
     <div id="grid" class="vault-grid"></div>
-    <details class="card narrow">
-      <summary>Trocar senha do vault</summary>
-      <form id="change-form" class="form">
-        <label>Senha atual <input type="password" name="old" required autocomplete="current-password"></label>
-        <label>Nova senha <input type="password" name="pass" minlength="12" required autocomplete="new-password"></label>
-        <label>Repita <input type="password" name="pass2" minlength="12" required autocomplete="new-password"></label>
-        <button class="btn">Trocar</button>
-        <p id="change-msg" class="msg" hidden></p>
-      </form>
-    </details>
+    <p class="small">Para trocar a senha, vá em <a href="/settings">Configurações</a>. Suas 12 palavras continuam valendo.</p>
   </section>
 
   <div id="viewer" class="viewer" hidden>

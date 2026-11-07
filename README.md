@@ -49,22 +49,35 @@ Para aceitar PNGs 8K maiores, rode o servidor local [`telegram-bot-api`](https:/
 - **Moderação:** fila de aprovação, denúncias (uma denúncia de "menor de idade" tira o wallpaper do ar na hora), editor de tags e de
   categorias/cores, e gestão de usuários.
 
-## Como funciona o vault (criptografia no navegador)
+## Contas e vault: criptografia no navegador (conhecimento zero)
+
+A senha **nunca sai do navegador** (modelo do Bitwarden). Tudo é gerado no **cadastro**:
 
 ```
-senha do vault ──PBKDF2-SHA256, 600 mil iterações, salt──▶ KEK
-chave-mestra (256 bits aleatórios) ──AES-GCM(KEK)──────────▶ wrapped_key        → servidor
-chave de recuperação (mostrada 1x) ──AES-GCM──────────────▶ recovery_wrapped_key → servidor
-arquivo, miniatura, nome/tipo, nome de pasta ──AES-GCM(chave-mestra)──▶ servidor/Telegram
+senha ──PBKDF2-SHA256 (600 mil it., salt)──▶ segredo ──HKDF──┬─▶ auth_hash → servidor guarda argon2(auth_hash)
+                                                              └─▶ KEK       → fica no navegador
+chave-mestra do vault (256 bits aleatórios) ──AES-GCM(KEK)──▶ wrapped_key            → servidor
+12 palavras BIP39 (128 bits) ──HKDF──┬─▶ chave de recuperação ──AES-GCM──▶ recovery_wrapped_key → servidor
+                                     └─▶ recovery_auth → servidor guarda argon2(recovery_auth)
+arquivos, miniaturas, nomes e pastas do vault ──AES-GCM(chave-mestra)──▶ servidor / Telegram
 ```
 
-- Toda a criptografia está em `app/static/js/vault.js` (WebCrypto). O servidor recebe só salt, chaves embrulhadas e bytes cifrados.
-- A senha do vault é **separada da senha de login**. A de login é enviada ao servidor, e a do vault nunca é.
-- Trocar a senha só re-embrulha a chave-mestra, sem recifrar nenhum arquivo.
-- Cada tipo de dado usa um AAD diferente, então não dá para trocar a miniatura de um item pelo arquivo de outro.
-- O vault tranca sozinho após 15 minutos sem uso.
-- **Sem a senha e sem a chave de recuperação, os arquivos são irrecuperáveis.** Isso é proposital.
-- Requer HTTPS em produção (WebCrypto só funciona em contexto seguro; localhost é aceito).
+- **Cadastro:** o navegador gera as chaves e mostra as **12 palavras** (lista oficial BIP39 em inglês, com checksum,
+  como numa carteira de bitcoin). A pessoa marca que anotou e depois digita **5 palavras sorteadas**. A conta só é
+  criada se ela acertar.
+- **Login:** `/api/prelogin` devolve o salt. O navegador deriva o `auth_hash` e só ele é enviado. Logins inexistentes
+  recebem um salt falso e estável, para não revelar quem tem conta.
+- **Vault:** abre com a mesma senha de login. A KEK fica em `sessionStorage`, só naquela aba, e é apagada ao sair,
+  ao trancar ou depois de 15 minutos sem uso.
+- **Formatar o PC ou trocar de aparelho não faz perder nada:** a chave não fica presa ao dispositivo. Basta a senha
+  ou as 12 palavras.
+- **Esqueci a senha:** em `/recover`, as 12 palavras (checadas no navegador; o checksum pega erros de digitação ou de
+  ordem) abrem a chave-mestra e definem uma senha nova. O vault continua intacto e as palavras continuam valendo.
+- **Trocar senha:** acontece no navegador e re-embrulha a mesma chave-mestra, então nenhum arquivo precisa ser recifrado.
+- **Contas antigas** (criadas antes deste sistema) são levadas a `/setup-key` no login para gerar as palavras.
+- **Sem a senha e sem as 12 palavras, nada é recuperável**, nem pela administração. Isso é proposital.
+- Login e cadastro exigem JavaScript e HTTPS em produção (WebCrypto só funciona em contexto seguro; localhost é aceito).
+- O servidor não vê a senha, então a regra de força da senha é aplicada só no navegador.
 
 ## Produção
 

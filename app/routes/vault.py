@@ -1,16 +1,15 @@
 """Vault pessoal com criptografia de ponta a ponta (client-side).
 
 O servidor é "cego": recebe e devolve apenas bytes cifrados. Toda a criptografia
-acontece em app/static/js/vault.js usando a WebCrypto API do navegador:
+acontece no navegador (app/static/js/keys.js e vault.js) com a WebCrypto API:
 
-  senha do vault ──PBKDF2-SHA256 (600k it., salt)──▶ KEK (chave de embrulho)
-  chave-mestra (AES-256, aleatória) ──AES-GCM com KEK──▶ wrapped_key (vai p/ servidor)
+  senha de login ──PBKDF2-SHA256 (600k) + HKDF──▶ KEK (só no navegador)
+  chave-mestra (gerada no cadastro) ──AES-GCM(KEK)──▶ wrapped_key
+  12 palavras BIP39 ──HKDF──▶ chave de recuperação ──AES-GCM──▶ recovery_wrapped_key
   cada arquivo ──AES-GCM com a chave-mestra──▶ blob cifrado (vai p/ Telegram)
 
-O que o servidor guarda: salt, nº de iterações, wrapped_key, blobs e metadados cifrados.
-O que ele NUNCA recebe: a senha do vault, a KEK ou a chave-mestra.
-Consequência: se o dono esquecer a senha e perder a chave de recuperação, os arquivos
-são irrecuperáveis — nem a administração do site consegue abrir.
+O servidor nunca recebe a senha, a KEK, a chave-mestra nem as palavras. Formatar o
+computador não faz perder nada: basta a senha (ou as 12 palavras) em qualquer aparelho.
 """
 
 from __future__ import annotations
@@ -20,20 +19,19 @@ import binascii
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from starlette.datastructures import UploadFile
-from fastapi.responses import Response
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..db import get_db
-from ..models import User, VaultFolder, VaultItem, VaultKey, utcnow
+from ..models import User, VaultFolder, VaultItem, VaultKey
 from ..security import csrf_protect, require_user
 from ..storage import StorageError, fetch_cached, get_storage
 from ..web import render
 
 router = APIRouter()
 
-MIN_ITERATIONS = 300_000
 VAULT_QUOTA_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB por usuário
 MAX_META_LEN = 8192
 
@@ -51,6 +49,8 @@ def _b64(value: str, max_len: int, field: str) -> str:
 
 @router.get("/vault")
 def vault_page(request: Request, user: User = Depends(require_user)):
+    if not user.client_kdf:
+        return RedirectResponse("/setup-key", status_code=303)
     return render(request, "vault.html", {"max_mb": get_settings().max_upload_mb})
 
 
@@ -60,47 +60,17 @@ def vault_page(request: Request, user: User = Depends(require_user)):
 @router.get("/api/vault/key")
 def get_key(user: User = Depends(require_user), db: Session = Depends(get_db)):
     vk = db.get(VaultKey, user.id)
-    if not vk:
+    if not vk or not user.client_kdf:
         return {"exists": False}
     used = db.scalar(select(func.coalesce(func.sum(VaultItem.size), 0)).where(VaultItem.user_id == user.id))
     return {
         "exists": True,
-        "kdf": vk.kdf,
-        "iterations": vk.kdf_iterations,
-        "salt": vk.salt,
+        "salt": user.kdf_salt,
+        "iterations": user.kdf_iterations,
         "wrapped_key": vk.wrapped_key,
-        "recovery_wrapped_key": vk.recovery_wrapped_key,
         "used_bytes": used,
         "quota_bytes": VAULT_QUOTA_BYTES,
     }
-
-
-@router.post("/api/vault/key", dependencies=[Depends(csrf_protect)])
-async def set_key(request: Request, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    """Cria o vault ou troca a senha (re-embrulha a MESMA chave-mestra; arquivos não mudam)."""
-    body = await request.json()
-    iterations = int(body.get("iterations", 0))
-    if iterations < MIN_ITERATIONS or iterations > 10_000_000:
-        raise HTTPException(400, "Iterações fora do intervalo permitido")
-    salt = _b64(body.get("salt"), 64, "salt")
-    wrapped = _b64(body.get("wrapped_key"), 255, "wrapped_key")
-    recovery = body.get("recovery_wrapped_key")
-    vk = db.get(VaultKey, user.id)
-    if vk is None:
-        if not recovery:
-            raise HTTPException(400, "Chave de recuperação obrigatória na criação")
-        vk = VaultKey(user_id=user.id, kdf_iterations=iterations, salt=salt, wrapped_key=wrapped,
-                      recovery_wrapped_key=_b64(recovery, 255, "recovery_wrapped_key"))
-        db.add(vk)
-    else:
-        if body.get("replace") is not True:
-            raise HTTPException(409, "Vault já existe")
-        vk.kdf_iterations, vk.salt, vk.wrapped_key = iterations, salt, wrapped
-        if recovery:
-            vk.recovery_wrapped_key = _b64(recovery, 255, "recovery_wrapped_key")
-        vk.updated_at = utcnow()
-    db.commit()
-    return {"ok": True}
 
 
 # ------------------------------------------------------------------ pastas

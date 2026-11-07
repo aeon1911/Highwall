@@ -227,3 +227,12 @@ section h2 .more { font-size: .6em; font-weight: 400; margin-left: 10px; }
   .mainnav { order: 3; width: 100%; overflow-x: auto; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 }
+
+/* ------------------------------------------------------------ frase de recuperação */
+.phrase-grid { list-style: none; padding: 0; margin: 14px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; counter-reset: none; }
+.phrase-grid li { background: var(--bg3); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font: 600 1.05em ui-monospace, monospace; user-select: none; }
+.phrase-grid li b { color: var(--muted); font-weight: 400; margin-right: 8px; display: inline-block; min-width: 1.4em; }
+.phrase-check label span { color: var(--muted); }
+input.invalid { outline: 2px solid var(--err) !important; }
+.msg.tight { padding-left: 28px; }
+@media (max-width: 500px) { .phrase-grid { grid-template-columns: repeat(2, 1fr); } }

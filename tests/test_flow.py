@@ -20,7 +20,13 @@ def test_full_flow(appclient):
 
     admin = new_client()
     assert admin.get("/").status_code == 200
-    register(admin, "chefe")  # primeiro usuário vira admin
+    register(admin, "chefe")
+    from app.db import SessionLocal
+    from app.models import User
+
+    with SessionLocal() as db:  # outros testes podem ter criado o primeiro usuário (que vira admin)
+        db.query(User).filter_by(username="chefe").one().role = "admin"
+        db.commit()
     assert "Moderação" in admin.get("/").text
 
     alice = new_client()
@@ -127,18 +133,10 @@ def test_vault_server_is_blind():
     register(c, "vaultuser")
     tok = csrf_of(c)
     h = {"X-CSRF-Token": tok}
-    assert c.get("/api/vault/key").json() == {"exists": False}
 
     b64 = lambda n: base64.b64encode(os.urandom(n)).decode()
-    # sem chave de recuperação não cria
-    assert c.post("/api/vault/key", json={"iterations": 600000, "salt": b64(16), "wrapped_key": b64(60)}, headers=h).status_code == 400
-    # iterações fracas são recusadas
-    assert c.post("/api/vault/key", json={"iterations": 1000, "salt": b64(16), "wrapped_key": b64(60),
-                                          "recovery_wrapped_key": b64(60)}, headers=h).status_code == 400
-    r = c.post("/api/vault/key", json={"iterations": 600000, "salt": b64(16), "wrapped_key": b64(60),
-                                       "recovery_wrapped_key": b64(60)}, headers=h)
-    assert r.status_code == 200
-    assert c.get("/api/vault/key").json()["exists"] is True
+    assert c.get("/api/vault/key").json()["exists"] is True  # vault criado no próprio cadastro
+    assert c.post("/api/vault/key", json={}, headers=h).status_code == 405  # não dá mais para sobrescrever
 
     fid = c.post("/api/vault/folders", json={"name_enc": b64(40)}, headers=h).json()["id"]
     blob, thumb = os.urandom(5000), os.urandom(800)

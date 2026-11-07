@@ -1,0 +1,26 @@
+{# Etapas de exibição e confirmação das 12 palavras (controladas por keys.js) #}
+<section id="phrase-box" class="card narrow phrase-box" hidden>
+  <div data-phrase="show">
+    <h2>Sua frase de recuperação</h2>
+    <p>Estas <strong>12 palavras</strong> são a única forma de recuperar sua conta e seu vault se você esquecer a senha.
+       Elas foram geradas <strong>no seu navegador</strong>: o HighWall não tem cópia.</p>
+    <ul class="msg warn tight">
+      <li>Anote no papel, na ordem, e guarde em lugar seguro.</li>
+      <li>Não tire print nem mande por mensagem.</li>
+      <li>Quem tiver estas palavras consegue entrar na sua conta.</li>
+    </ul>
+    <ol class="phrase-grid"></ol>
+    <label class="check"><input type="checkbox" data-phrase="ack"> Anotei as 12 palavras, na ordem, em um lugar seguro.</label>
+    <button type="button" class="btn accent" data-phrase="next">Já anotei — continuar</button>
+  </div>
+  <div data-phrase="confirm" hidden>
+    <h2>Confirme sua anotação</h2>
+    <p>Digite as palavras pedidas, olhando o que você anotou.</p>
+    <div class="phrase-check form"></div>
+    <p data-phrase="msg" class="msg" hidden></p>
+    <div class="row">
+      <button type="button" class="btn" data-phrase="back">‹ Ver as palavras de novo</button>
+      <button type="button" class="btn accent" data-phrase="verify">Confirmar</button>
+    </div>
+  </div>
+</section>

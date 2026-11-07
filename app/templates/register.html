@@ -1,17 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Criar conta{% endblock %}
+{% block head %}<script src="/static/js/bip39-en.js" defer></script>{% endblock %}
 {% block content %}
-<form class="card narrow form" method="post" action="/register">
+<noscript><p class="msg error narrow">O cadastro precisa de JavaScript: suas chaves são geradas no navegador.</p></noscript>
+<form id="register-form" class="card narrow form" data-iterations="{{ iterations }}" autocomplete="on">
   <h1>Criar conta</h1>
-  {% for e in errors or [] %}<p class="msg error">{{ e }}</p>{% endfor %}
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-  <label>Usuário <input name="username" value="{{ form.username or '' }}" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_.\-]+" autocomplete="username"></label>
-  <label>E-mail <input type="email" name="email" value="{{ form.email or '' }}" required autocomplete="email"></label>
-  <label>Data de nascimento <input type="date" name="birthdate" value="{{ form.birthdate or '' }}" required></label>
+  <p id="register-msg" class="msg" hidden></p>
+  <label>Usuário <input name="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_.\-]+" autocomplete="username"></label>
+  <label>E-mail <input type="email" name="email" required autocomplete="email"></label>
+  <label>Data de nascimento <input type="date" name="birthdate" required></label>
   <label>Senha <small>(mín. 10 caracteres, letras + números/símbolos)</small><input type="password" name="password" required minlength="10" autocomplete="new-password"></label>
   <label>Repita a senha <input type="password" name="password2" required minlength="10" autocomplete="new-password"></label>
-  <label class="check"><input type="checkbox" name="accept_terms" value="yes" required> Tenho {{ min_age }}+ anos e aceito os <a href="/terms" target="_blank">termos e regras</a>.</label>
-  <button class="btn accent">Criar conta</button>
+  <p class="small">🔒 Sua senha nunca é enviada ao servidor. Ela gera, aqui no navegador, a chave que protege seu vault.
+    Em seguida você recebe 12 palavras de recuperação.</p>
+  <label class="check"><input type="checkbox" name="accept_terms" required> Tenho {{ min_age }}+ anos e aceito os <a href="/terms" target="_blank">termos e regras</a>.</label>
+  <button class="btn accent">Continuar</button>
   <p class="small">Já tem conta? <a href="/login">Entrar</a></p>
 </form>
+{% include "_phrase.html" %}
 {% endblock %}

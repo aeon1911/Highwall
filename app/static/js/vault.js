@@ -1,8 +1,6 @@
-// Vault pessoal com criptografia de ponta a ponta (tudo acontece AQUI, no navegador).
+// Vault pessoal com criptografia de ponta a ponta. As primitivas ficam em keys.js (window.HWCrypto).
 //
-//  senha do vault ──PBKDF2-SHA256(600k, salt)──▶ KEK
-//  chave-mestra (32 bytes aleatórios) ──AES-GCM(KEK)──▶ wrapped_key  (servidor guarda)
-//  chave de recuperação (32 bytes, mostrada 1x) ──AES-GCM──▶ recovery_wrapped_key
+//  senha de login ──PBKDF2 + HKDF (keys.js)──▶ KEK ──abre──▶ chave-mestra (gerada no cadastro)
 //  arquivo / miniatura / metadados / nome de pasta ──AES-GCM(chave-mestra)──▶ servidor/Telegram
 //
 // Formato de todo ciphertext: IV (12 bytes) || AES-GCM(ciphertext + tag 16 bytes).
@@ -13,10 +11,9 @@
   const root = document.getElementById("vault");
   if (!root) return;
 
-  const ITERATIONS = 600000;
+  const C = window.HWCrypto;
+  const { unb64, seal, open, sealText, openText, importAes } = C;
   const AUTO_LOCK_MS = 15 * 60 * 1000;
-  const enc = new TextEncoder();
-  const dec = new TextDecoder();
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
   const $ = (sel) => root.querySelector(sel);
 
@@ -28,22 +25,6 @@
   const objectUrls = new Set();
   let lockTimer = null;
 
-  // ------------------------------------------------------------ utilidades
-  const b64 = (buf) => {
-    const bytes = new Uint8Array(buf);
-    let s = "";
-    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    return btoa(s);
-  };
-  const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-  const rand = (n) => crypto.getRandomValues(new Uint8Array(n));
-  const concat = (a, b) => {
-    const out = new Uint8Array(a.length + b.length);
-    out.set(a, 0);
-    out.set(b, a.length);
-    return out;
-  };
-  const AAD = (kind) => enc.encode(`high-vault:v1:${kind}`);
   const fmtSize = (n) => (n > 1048576 ? (n / 1048576).toFixed(1) + " MB" : (n / 1024).toFixed(0) + " KB");
 
   async function api(path, opts = {}) {
@@ -61,45 +42,6 @@
     return r;
   }
 
-  // ------------------------------------------------------------ primitivas de criptografia
-  async function deriveKEK(passphrase, salt, iterations) {
-    const base = await crypto.subtle.importKey("raw", enc.encode(passphrase.normalize("NFKC")), "PBKDF2", false, ["deriveKey"]);
-    return crypto.subtle.deriveKey(
-      { name: "PBKDF2", hash: "SHA-256", salt, iterations },
-      base,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["encrypt", "decrypt"]
-    );
-  }
-  const importAes = (raw, extractable = false) =>
-    crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, extractable, ["encrypt", "decrypt"]);
-
-  async function seal(key, data, kind) {
-    const iv = rand(12);
-    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: AAD(kind) }, key, data);
-    return concat(iv, new Uint8Array(ct));
-  }
-  async function open(key, sealed, kind) {
-    const bytes = sealed instanceof Uint8Array ? sealed : new Uint8Array(sealed);
-    return crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: bytes.subarray(0, 12), additionalData: AAD(kind) },
-      key,
-      bytes.subarray(12)
-    );
-  }
-  const sealText = async (key, obj, kind) => b64(await seal(key, enc.encode(JSON.stringify(obj)), kind));
-  const openText = async (key, s, kind) => JSON.parse(dec.decode(await open(key, unb64(s), kind)));
-
-  // chave de recuperação: 32 bytes em hex, agrupados de 4 em 4 para facilitar anotar
-  const formatRecovery = (raw) => [...raw].map((b) => b.toString(16).padStart(2, "0")).join("").match(/.{4}/g).join("-");
-  const parseRecovery = (s) => {
-    const hex = s.replace(/[^0-9a-f]/gi, "");
-    if (hex.length !== 64) throw new Error("Chave de recuperação deve ter 64 caracteres hexadecimais.");
-    return Uint8Array.from(hex.match(/.{2}/g), (h) => parseInt(h, 16));
-  };
-
-  // ------------------------------------------------------------ telas
   function show(id) {
     root.querySelectorAll("[data-screen]").forEach((el) => (el.hidden = el.dataset.screen !== id));
   }
@@ -109,154 +51,58 @@
     el.className = "msg " + kind;
     el.hidden = !text;
   }
-  function busy(form, on) {
-    form.querySelectorAll("button, input").forEach((el) => (el.disabled = on));
+
+  /** KEK (bytes) → chave-mestra. Lança erro se a KEK não abrir (senha errada). */
+  async function unlockWith(kekRaw) {
+    const raw = new Uint8Array(await open(await importAes(kekRaw), unb64(keyInfo.wrapped_key), "master"));
+    masterKey = await importAes(raw);
+    raw.fill(0);
   }
 
   async function init() {
-    if (!window.isSecureContext || !crypto.subtle) {
-      show("insecure");
-      return;
-    }
+    if (!window.isSecureContext || !crypto.subtle) return show("insecure");
     keyInfo = await (await api("/api/vault/key")).json();
-    show(keyInfo.exists ? "unlock" : "setup");
+    if (!keyInfo.exists) return (location.href = "/setup-key");
+    const kek = C.recallKek(); // já derivada no login, nesta aba
+    if (kek) {
+      try {
+        await unlockWith(kek);
+        return enterVault();
+      } catch (_) {
+        C.forgetKek(); // senha mudou em outro aparelho
+      }
+    }
+    show("unlock");
   }
 
-  // ---- criação
-  $("#setup-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const f = e.target;
-    const p1 = f.pass.value, p2 = f.pass2.value;
-    if (p1.length < 12) return setMsg("#setup-msg", "Use pelo menos 12 caracteres.");
-    if (p1 !== p2) return setMsg("#setup-msg", "As senhas não conferem.");
-    busy(f, true);
-    setMsg("#setup-msg", "Gerando chaves (pode levar alguns segundos)…", "info");
-    try {
-      const masterRaw = rand(32);
-      const recoveryRaw = rand(32);
-      const salt = rand(16);
-      const kek = await deriveKEK(p1, salt, ITERATIONS);
-      const wrapped = await seal(kek, masterRaw, "master");
-      const recWrapped = await seal(await importAes(recoveryRaw), masterRaw, "master");
-      await api("/api/vault/key", {
-        method: "POST",
-        json: { iterations: ITERATIONS, salt: b64(salt), wrapped_key: b64(wrapped), recovery_wrapped_key: b64(recWrapped) },
-      });
-      masterKey = await importAes(masterRaw);
-      masterRaw.fill(0);
-      $("#recovery-code").textContent = formatRecovery(recoveryRaw);
-      recoveryRaw.fill(0);
-      f.reset();
-      keyInfo = await (await api("/api/vault/key")).json();
-      show("recovery");
-    } catch (err) {
-      setMsg("#setup-msg", "Erro: " + err.message);
-    } finally {
-      busy(f, false);
-    }
-  });
-  $("#recovery-done").addEventListener("click", () => {
-    if (!$("#recovery-ack").checked) return alert("Confirme que guardou a chave de recuperação.");
-    $("#recovery-code").textContent = "";
-    enterVault();
-  });
-
-  // ---- desbloqueio
   $("#unlock-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const f = e.target;
-    busy(f, true);
+    f.querySelectorAll("button, input").forEach((el) => (el.disabled = true));
     setMsg("#unlock-msg", "Derivando chave…", "info");
     try {
-      const kek = await deriveKEK(f.pass.value, unb64(keyInfo.salt), keyInfo.iterations);
-      let raw;
+      const { kekRaw } = await C.deriveFromPassword(f.pass.value, keyInfo.salt, keyInfo.iterations);
       try {
-        raw = new Uint8Array(await open(kek, unb64(keyInfo.wrapped_key), "master"));
+        await unlockWith(kekRaw);
       } catch (_) {
-        throw new Error("Senha do vault incorreta.");
+        throw new Error("Senha incorreta.");
       }
-      masterKey = await importAes(raw);
-      raw.fill(0);
+      C.rememberKek(kekRaw);
       f.reset();
       setMsg("#unlock-msg", "");
       enterVault();
     } catch (err) {
       setMsg("#unlock-msg", err.message);
     } finally {
-      busy(f, false);
-    }
-  });
-
-  // ---- recuperação: abre com a chave de recuperação e obriga a definir senha nova
-  $("#recover-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const f = e.target;
-    if (f.pass.value.length < 12) return setMsg("#recover-msg", "Nova senha: mínimo 12 caracteres.");
-    if (f.pass.value !== f.pass2.value) return setMsg("#recover-msg", "As senhas não conferem.");
-    busy(f, true);
-    try {
-      const recKey = await importAes(parseRecovery(f.code.value));
-      let raw;
-      try {
-        raw = new Uint8Array(await open(recKey, unb64(keyInfo.recovery_wrapped_key), "master"));
-      } catch (_) {
-        throw new Error("Chave de recuperação incorreta.");
-      }
-      const salt = rand(16);
-      const kek = await deriveKEK(f.pass.value, salt, ITERATIONS);
-      await api("/api/vault/key", {
-        method: "POST",
-        json: { replace: true, iterations: ITERATIONS, salt: b64(salt), wrapped_key: b64(await seal(kek, raw, "master")) },
-      });
-      masterKey = await importAes(raw);
-      raw.fill(0);
-      f.reset();
-      keyInfo = await (await api("/api/vault/key")).json();
-      enterVault();
-    } catch (err) {
-      setMsg("#recover-msg", err.message);
-    } finally {
-      busy(f, false);
-    }
-  });
-  $("#show-recover").addEventListener("click", () => show("recover"));
-  $("#back-unlock").addEventListener("click", () => show("unlock"));
-
-  // ---- trocar senha (re-embrulha a mesma chave-mestra; nenhum arquivo precisa ser recifrado)
-  $("#change-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const f = e.target;
-    if (f.pass.value.length < 12) return setMsg("#change-msg", "Mínimo 12 caracteres.");
-    if (f.pass.value !== f.pass2.value) return setMsg("#change-msg", "As senhas não conferem.");
-    busy(f, true);
-    try {
-      const oldKek = await deriveKEK(f.old.value, unb64(keyInfo.salt), keyInfo.iterations);
-      let raw;
-      try {
-        raw = new Uint8Array(await open(oldKek, unb64(keyInfo.wrapped_key), "master"));
-      } catch (_) {
-        throw new Error("Senha atual incorreta.");
-      }
-      const salt = rand(16);
-      const kek = await deriveKEK(f.pass.value, salt, ITERATIONS);
-      await api("/api/vault/key", {
-        method: "POST",
-        json: { replace: true, iterations: ITERATIONS, salt: b64(salt), wrapped_key: b64(await seal(kek, raw, "master")) },
-      });
-      raw.fill(0);
-      keyInfo = await (await api("/api/vault/key")).json();
-      f.reset();
-      setMsg("#change-msg", "Senha do vault alterada.", "ok");
-    } catch (err) {
-      setMsg("#change-msg", err.message);
-    } finally {
-      busy(f, false);
+      f.querySelectorAll("button, input").forEach((el) => (el.disabled = false));
     }
   });
 
   // ------------------------------------------------------------ vault aberto
   function lock() {
     masterKey = null;
+    C.forgetKek(); // trancar exige a senha de novo
+    thumbCache.clear();
     items = [];
     folders = [];
     objectUrls.forEach((u) => URL.revokeObjectURL(u));

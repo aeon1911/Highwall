@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Entrar{% endblock %}
 {% block content %}
-<form class="card narrow form" method="post" action="/login">
+<noscript><p class="msg error narrow">O login precisa de JavaScript: sua senha é processada no navegador.</p></noscript>
+<form id="login-form" class="card narrow form">
   <h1>Entrar</h1>
-  {% if error %}<p class="msg error">{{ error }}</p>{% endif %}
-  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <p id="login-msg" class="msg" hidden></p>
   <input type="hidden" name="next" value="{{ next }}">
-  <label>Usuário ou e-mail <input name="login" value="{{ login or '' }}" required autocomplete="username"></label>
+  <label>Usuário ou e-mail <input name="login" required autocomplete="username"></label>
   <label>Senha <input type="password" name="password" required autocomplete="current-password"></label>
   <button class="btn accent">Entrar</button>
+  <p class="small"><a href="/recover">Esqueci a senha — usar as 12 palavras</a></p>
   <p class="small">Não tem conta? <a href="/register">Criar conta</a></p>
 </form>
 {% endblock %}

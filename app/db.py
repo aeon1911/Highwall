@@ -40,4 +40,29 @@ def get_db() -> Iterator[Session]:
 def init_db(bind=None) -> None:
     from . import models  # noqa: F401  (registra as tabelas)
 
-    Base.metadata.create_all(bind=bind or engine)
+    bind = bind or engine
+    _migrate(bind)
+    Base.metadata.create_all(bind=bind)
+
+
+def _migrate(bind) -> None:
+    """Migrações simples para bancos SQLite criados por versões anteriores."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(bind)
+    tables = insp.get_table_names()
+    with bind.begin() as conn:
+        if "users" in tables:
+            cols = {c["name"] for c in insp.get_columns("users")}
+            for name, ddl in (
+                ("kdf_salt", "VARCHAR(64)"),
+                ("kdf_iterations", "INTEGER"),
+                ("recovery_auth_hash", "VARCHAR(255)"),
+            ):
+                if name not in cols:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {name} {ddl}"))
+        if "vault_keys" in tables and "salt" in {c["name"] for c in insp.get_columns("vault_keys")}:
+            # formato antigo (senha separada do vault): incompatível com o novo esquema
+            if conn.execute(text("SELECT COUNT(*) FROM vault_keys")).scalar():
+                raise RuntimeError("vault_keys no formato antigo contém dados; migre manualmente")
+            conn.execute(text("DROP TABLE vault_keys"))

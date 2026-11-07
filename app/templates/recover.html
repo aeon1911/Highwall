@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Recuperar conta{% endblock %}
+{% block head %}<script src="/static/js/bip39-en.js" defer></script>{% endblock %}
+{% block content %}
+<form id="recover-form" class="card narrow form" data-iterations="{{ iterations }}">
+  <h1>Recuperar conta</h1>
+  <p>Use as 12 palavras que você anotou no cadastro. Elas são checadas no seu navegador e abrem sua conta e seu vault sem perder nada.</p>
+  <p id="recover-msg" class="msg" hidden></p>
+  <label>Usuário ou e-mail <input name="login" required autocomplete="username"></label>
+  <label>As 12 palavras, na ordem, separadas por espaço
+    <textarea name="words" rows="3" required autocomplete="off" autocapitalize="none" spellcheck="false"></textarea></label>
+  <label>Nova senha <input type="password" name="password" required minlength="10" autocomplete="new-password"></label>
+  <label>Repita a nova senha <input type="password" name="password2" required minlength="10" autocomplete="new-password"></label>
+  <button class="btn accent">Recuperar</button>
+  <p class="small">Sem a senha e sem as 12 palavras não há como recuperar: nem a administração tem acesso às suas chaves.</p>
+</form>
+{% endblock %}

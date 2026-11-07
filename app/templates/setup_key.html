@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Gerar frase de recuperação{% endblock %}
+{% block head %}<script src="/static/js/bip39-en.js" defer></script>{% endblock %}
+{% block content %}
+<form id="setup-key-form" class="card narrow form" data-iterations="{{ iterations }}">
+  <h1>Proteja sua conta</h1>
+  <p>Sua conta foi criada antes do novo sistema de chaves. Confirme sua senha para gerarmos, <strong>no seu navegador</strong>,
+     a chave do seu vault e as 12 palavras de recuperação. Depois disso sua senha não é mais enviada ao servidor.</p>
+  <p id="setup-msg" class="msg" hidden></p>
+  <label>Senha atual <input type="password" name="password" required autocomplete="current-password"></label>
+  <button class="btn accent">Gerar minhas chaves</button>
+</form>
+{% include "_phrase.html" %}
+{% endblock %}
